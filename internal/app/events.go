@@ -58,7 +58,7 @@ func (m *Model) onKey(event ui.KeyEvent) ui.EventResult {
 // printable key and the arrows.
 func (m *Model) typing(target ui.ID) bool {
 	switch target {
-	case searchFieldID, playlistFieldID, newPlaylistFieldID:
+	case searchFieldID, playlistFieldID, newPlaylistFieldID, m.onlineID("search-field"):
 		return true
 	}
 	return false
@@ -68,6 +68,8 @@ func (m *Model) typing(target ui.ID) bool {
 // anything.
 func (m *Model) dismiss() bool {
 	switch {
+	case m.showLogin:
+		m.cancelLogin()
 	case m.addTrackID != "":
 		m.addTrackID = ""
 	case m.showNewList:

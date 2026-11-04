@@ -3,6 +3,7 @@ package catalog
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -17,6 +18,7 @@ type State struct {
 	Favorites    []string       `json:"favorites"`
 	History      []string       `json:"history"`
 	PlayCounts   map[string]int `json:"playCounts,omitempty"`
+	OnlineTracks []Track        `json:"onlineTracks,omitempty"`
 	LastTrack    string         `json:"lastTrack,omitempty"`
 	LastPosition time.Duration  `json:"lastPosition,omitempty"`
 	Volume       float64        `json:"volume"`
@@ -61,6 +63,17 @@ func (s *Store) ArtDir() string { return filepath.Join(s.Dir, "art") }
 // ArtPath is the cached cover for a track, whether or not it exists yet.
 func (s *Store) ArtPath(trackID string) string {
 	return filepath.Join(s.ArtDir(), trackID+".img")
+}
+
+// OnlineDir is where songs streamed from an online service are cached, so a
+// song that has been played once does not have to be fetched again.
+func (s *Store) OnlineDir() string { return filepath.Join(s.Dir, "online") }
+
+// OnlinePath is the cache file for a song, whether or not it has been
+// downloaded yet. The extension is part of the name because the decoder picks a
+// parser from it.
+func (s *Store) OnlinePath(remoteID int64, extension string) string {
+	return filepath.Join(s.OnlineDir(), fmt.Sprintf("%d%s", remoteID, extension))
 }
 
 // LoadState reads the saved state, returning the defaults when there is none or

@@ -37,7 +37,24 @@ func (m *Model) iconButton(f *flex.Frame, theme ui.Theme, id ui.ID, icon ui.Icon
 // decoded on a worker, so the bitmap may be empty on the first frames.
 func (m *Model) coverSlot(f *flex.Frame, track catalog.Track, size, radius float32) flex.Box {
 	slot := f.Slot().Size(size, size)
-	m.covers = append(m.covers, coverSlot{box: slot, bitmap: m.art.Bitmap(track), radius: radius})
+	var bitmap ui.Bitmap
+	if track.Online() {
+		// A service song carries its own picture URL and has no file to read
+		// embedded art from.
+		bitmap = m.images.Bitmap(track.CoverURL)
+	} else {
+		bitmap = m.art.Bitmap(track)
+	}
+	m.covers = append(m.covers, coverSlot{box: slot, bitmap: bitmap, radius: radius})
+	return slot
+}
+
+// imageBox reserves the place a picture that is not tied to a local file will be
+// painted after layout, such as an online cover or the login QR code. The bitmap
+// may be empty on the first frames while the worker fetches it.
+func (m *Model) imageBox(f *flex.Frame, bitmap ui.Bitmap, size, radius float32) flex.Box {
+	slot := f.Slot().Size(size, size)
+	m.imageSlots = append(m.imageSlots, imageSlot{box: slot, bitmap: bitmap, radius: radius})
 	return slot
 }
 
@@ -124,7 +141,7 @@ func (m *Model) trackRow(f *flex.Frame, theme ui.Theme, track catalog.Track, ind
 		}
 	})
 	if row.Clicked() {
-		m.playTracks(tracks, index)
+		m.playTrackList(tracks, index)
 	}
 }
 
@@ -178,7 +195,7 @@ func (m *Model) artistCard(f *flex.Frame, theme ui.Theme, artist catalog.Artist)
 }
 
 func (m *Model) playlistCard(f *flex.Frame, theme ui.Theme, playlist catalog.Playlist) {
-	tracks := m.library.TracksByID(playlist.TrackIDs)
+	tracks := m.lookupTracks(playlist.TrackIDs)
 	card := f.Column().Width(168).Gap(8).Hit(m.cardID(playlist.ID), playlist.Name)
 	card.Children(func() {
 		if len(tracks) > 0 {
@@ -503,7 +520,7 @@ func (m *Model) pagePlaylist(f *flex.Frame, theme ui.Theme) {
 		f.Text("歌单不存在。").Muted()
 		return
 	}
-	tracks := m.library.TracksByID(playlist.TrackIDs)
+	tracks := m.lookupTracks(playlist.TrackIDs)
 	f.Row().FillWidth().Items(flex.Center).Children(func() {
 		f.Column().Grow(1).Gap(4).Children(func() {
 			f.Text(playlist.Name).FontSize(24).Bold()

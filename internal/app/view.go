@@ -70,6 +70,9 @@ var (
 	cancelDeleteID      = appTree.ID(appRoot, "cancel-delete")
 	dismissMenuID       = appTree.ID(appRoot, "dismiss-menu")
 	dismissAddID        = appTree.ID(appRoot, "dismiss-add")
+	loginScopeID        = appTree.ID(appRoot, "login-scope")
+	dismissLoginID      = appTree.ID(appRoot, "dismiss-login")
+	refreshLoginID      = appTree.ID(appRoot, "refresh-login")
 
 	navIDs = map[page]ui.ID{
 		pageDiscover:  appTree.ID(appRoot, "nav-discover"),
@@ -153,6 +156,7 @@ func (m *Model) paint(canvas *ui.Canvas, size ui.Size) {
 	canvas.Fill(ui.Rect{Width: size.Width, Height: size.Height}, theme.Background)
 
 	m.covers = m.covers[:0]
+	m.imageSlots = m.imageSlots[:0]
 	m.view.Draw(canvas, theme, ui.Rect{Width: size.Width, Height: size.Height}, func(f *flex.Frame) {
 		f.Column().Fill().Children(func() {
 			f.Row().Grow(1).FillWidth().Children(func() {
@@ -173,12 +177,20 @@ func (m *Model) paint(canvas *ui.Canvas, size ui.Size) {
 	for _, slot := range m.covers {
 		paintCover(canvas, theme, slot.box.Rect(), slot.bitmap, slot.radius)
 	}
+	for _, slot := range m.imageSlots {
+		paintCover(canvas, theme, slot.box.Rect(), slot.bitmap, slot.radius)
+	}
 
 	if m.player.Playing() {
 		canvas.RequestFrameIn(200 * time.Millisecond)
 	}
 	if m.toastVisible() != "" {
 		canvas.RequestFrameIn(100 * time.Millisecond)
+	}
+	// While the sign-in dialog is open the poll has to keep running, so ask for
+	// another frame until the phone confirms or the code expires.
+	if m.showLogin && !m.onlineState.SignedIn() {
+		canvas.RequestFrameIn(500 * time.Millisecond)
 	}
 	if m.wantAddFolder {
 		m.wantAddFolder = false
@@ -258,7 +270,7 @@ func (m *Model) navButton(f *flex.Frame, theme ui.Theme, id ui.ID, icon ui.Icon,
 // header is the title strip above the scrolling page.
 func (m *Model) header(f *flex.Frame, theme ui.Theme, size ui.Size) {
 	f.Row().FillWidth().Height(72).PadSides(24, 24, 24, 24).Items(flex.Center).Gap(12).Background(theme.Background).Children(func() {
-		if m.page == pageAlbum || m.page == pageArtist || m.page == pagePlaylist || m.page == pageFavorites || m.page == pageRecent {
+		if m.page == pageAlbum || m.page == pageArtist || m.page == pagePlaylist || m.page == pageFavorites || m.page == pageRecent || m.page == pageOnlinePlaylist {
 			m.iconButton(f, theme, backID, assetsChevronLeft, "返回", 34, false, m.goBack)
 		}
 		f.Column().Grow(1).Gap(2).Children(func() {
@@ -299,6 +311,10 @@ func (m *Model) content(f *flex.Frame, theme ui.Theme, size ui.Size) {
 				m.pageFavorites(f, theme)
 			case pageRecent:
 				m.pageRecent(f, theme)
+			case pageOnline:
+				m.pageOnline(f, theme)
+			case pageOnlinePlaylist:
+				m.pageOnlinePlaylist(f, theme)
 			}
 		})
 	})
@@ -326,6 +342,10 @@ func pageTitle(p page) string {
 		return "喜欢的歌曲"
 	case pageRecent:
 		return "最近添加"
+	case pageOnline:
+		return "在线音乐"
+	case pageOnlinePlaylist:
+		return "在线歌单"
 	}
 	return "汽水音乐"
 }
@@ -358,6 +378,10 @@ func (m *Model) pageSubtitle() string {
 		return fmt.Sprintf("%d 首歌曲", len(m.favorites))
 	case pageRecent:
 		return fmt.Sprintf("%d 首歌曲", len(m.recent))
+	case pageOnline:
+		return "登录网易云音乐，浏览你的歌单与每日推荐"
+	case pageOnlinePlaylist:
+		return fmt.Sprintf("%d 首歌曲 · 网易云音乐", len(m.onlineSongs))
 	}
 	return ""
 }

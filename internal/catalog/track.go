@@ -33,7 +33,19 @@ type Track struct {
 	Modified    time.Time     `json:"modified,omitempty"`
 	Added       time.Time     `json:"added"`
 	Art         bool          `json:"art,omitempty"`
+
+	// Source names where the file came from: empty for a file the user already
+	// had, "netease" for a song streamed from the online service and cached on
+	// disk. RemoteID is the service's own identity for the song, and CoverURL
+	// is the album picture the service served.
+	Source   string `json:"source,omitempty"`
+	RemoteID int64  `json:"remoteId,omitempty"`
+	CoverURL string `json:"coverUrl,omitempty"`
 }
+
+// Online reports whether the track came from an online service rather than the
+// user's own files.
+func (t Track) Online() bool { return t.Source != "" }
 
 // IDFor derives the identity of a track from its path, so the same file keeps
 // the same identity across scans and across machines that share a library root.

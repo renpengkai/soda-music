@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"sync"
@@ -14,6 +15,7 @@ import (
 
 	"soda-music/internal/audio"
 	"soda-music/internal/catalog"
+	"soda-music/internal/netease"
 	"soda-music/internal/player"
 )
 
@@ -31,6 +33,8 @@ const (
 	pagePlaylist
 	pageFavorites
 	pageRecent
+	pageOnline
+	pageOnlinePlaylist
 )
 
 // libraryTab is the section of the 曲库 screen.
@@ -52,6 +56,7 @@ type navEntry struct {
 
 var navEntries = []navEntry{
 	{pageDiscover, "发现", assetsDiscover},
+	{pageOnline, "在线音乐", assetsCloud},
 	{pageSearch, "搜索", assetsSearch},
 	{pageLibrary, "曲库", assetsLibrary},
 	{pagePlaylists, "歌单", assetsPlaylist},
@@ -67,6 +72,43 @@ type Model struct {
 	engine *audio.Engine
 	player *player.Player
 	art    *artCache
+	images *imageCache
+
+	online      *netease.Client
+	onlineState netease.Session
+	onlineLogin *netease.QRLogin
+	showLogin   bool
+	loginBusy   bool
+
+	// loginQR caches the decoded QR code of the current attempt, so it is only
+	// decoded when a new code arrives.
+	loginQR    ui.Bitmap
+	loginQRKey string
+
+	onlinePlaylists    []netease.Playlist
+	onlineDaily        []netease.Song
+	onlineSongs        []netease.Song
+	onlinePlaylistID   int64
+	onlinePlaylistName string
+	onlineLoading      bool
+	onlineError        string
+
+	onlineQuery     flex.Field
+	onlineSearchKey string
+	onlineSearch    []netease.Song
+	onlineSearching bool
+
+	// onlineFeed is a finished background fetch waiting for the window thread
+	// to move it into the model; pending holds the queue changes a download
+	// asked for. Both are guarded by mu.
+	onlineFeed    *onlineFeed
+	pending       []pendingAction
+	loginError    string
+	loginNextPoll time.Time
+
+	// onlineTracks remembers every service song the user has touched, so a
+	// playlist or a favourite that points at one still resolves after a restart.
+	onlineTracks map[string]catalog.Track
 
 	invalidator *app.Invalidator
 	tree        *ui.Tree
@@ -125,8 +167,9 @@ type Model struct {
 	scanning  atomic.Bool
 	scanCount atomic.Int64
 
-	covers []coverSlot
-	ids    idCache
+	covers     []coverSlot
+	imageSlots []imageSlot
+	ids        idCache
 
 	mu             sync.Mutex
 	scanned        *catalog.Library
@@ -137,6 +180,14 @@ type Model struct {
 // coverSlot is a place reserved for a cover picture. Rects are only known after
 // the page has been laid out, so covers are painted once End has run.
 type coverSlot struct {
+	box    flex.Box
+	bitmap ui.Bitmap
+	radius float32
+}
+
+// imageSlot is a place reserved for a picture that is not tied to a local file,
+// such as an online cover or the login QR code.
+type imageSlot struct {
 	box    flex.Box
 	bitmap ui.Bitmap
 	radius float32
@@ -156,6 +207,7 @@ type idCache struct {
 	picks     map[string]ui.ID
 	queues    map[string]ui.ID
 	removes   map[string]ui.ID
+	online    map[string]ui.ID
 }
 
 func newModel(store *catalog.Store, engine *audio.Engine, invalidator *app.Invalidator, tree *ui.Tree, root ui.Scope) *Model {
@@ -169,6 +221,9 @@ func newModel(store *catalog.Store, engine *audio.Engine, invalidator *app.Inval
 	}
 	m.player = player.New(engine)
 	m.art = newArtCache(store, m.invalidate)
+	m.images = newImageCache(m.invalidate)
+	m.onlineState = netease.LoadSession(store.Dir)
+	m.online = netease.New(m.onlineState.Cookie)
 	m.ids = idCache{
 		tracks:    make(map[string]ui.ID),
 		albums:    make(map[string]ui.ID),
@@ -181,9 +236,14 @@ func newModel(store *catalog.Store, engine *audio.Engine, invalidator *app.Inval
 		picks:     make(map[string]ui.ID),
 		queues:    make(map[string]ui.ID),
 		removes:   make(map[string]ui.ID),
+		online:    make(map[string]ui.ID),
 	}
 	m.library = catalog.New(nil)
 	m.applyState()
+	m.onlineTracks = make(map[string]catalog.Track, len(m.state.OnlineTracks))
+	for _, track := range m.state.OnlineTracks {
+		m.onlineTracks[track.ID] = track
+	}
 	return m
 }
 
@@ -208,6 +268,7 @@ func (m *Model) applyState() {
 // background.
 func (m *Model) start() {
 	m.art.start()
+	m.images.start()
 	folders, tracks, err := m.store.LoadLibrary()
 	if err == nil && len(tracks) > 0 {
 		m.setLibrary(catalog.New(tracks), folders)
@@ -219,6 +280,9 @@ func (m *Model) start() {
 		m.rescan()
 	}
 	m.restoreLast()
+	if m.onlineState.SignedIn() {
+		m.loadOnline()
+	}
 }
 
 // setLibrary replaces the library and everything derived from it.
@@ -261,8 +325,8 @@ func (m *Model) refresh() {
 	}
 	m.mostPlayed = played
 
-	m.favorites = m.library.TracksByID(m.state.Favorites)
-	m.history = m.library.TracksByID(m.state.History)
+	m.favorites = m.lookupTracks(m.state.Favorites)
+	m.history = m.lookupTracks(m.state.History)
 	m.queue = m.player.Queue()
 	m.rebuildSearch()
 }
@@ -324,6 +388,13 @@ func (m *Model) wake() {
 		m.setLibrary(scanned, folders)
 		m.toastf("已扫描 %s 首歌曲", formatCount(len(scanned.Tracks)))
 	}
+	// A finished online fetch and the queue changes a download asked for are
+	// applied here, on the window thread, so the player is never touched from a
+	// worker. The sign-in poll also runs here, so its result lands on the same
+	// thread that draws it.
+	m.applyOnlineFeed()
+	m.applyActions()
+	m.pollLogin()
 	// Tick advances the queue when a track has finished. It runs here, on the
 	// window thread, so Paint only reads the player's state.
 	if m.player.Tick() {
@@ -502,6 +573,12 @@ func (m *Model) restoreLast() {
 		}
 	}
 	if index < 0 {
+		// The last track may have been a service song that was cached on disk.
+		if track, ok := m.onlineTracks[m.state.LastTrack]; ok && track.Path != "" {
+			if _, err := os.Stat(track.Path); err == nil {
+				m.player.Restore([]catalog.Track{track}, 0, m.state.LastPosition)
+			}
+		}
 		return
 	}
 	// The queue is the whole library in album order, so "next" goes somewhere

@@ -11,6 +11,7 @@ import (
 	"github.com/vivaui/viva/headless"
 
 	"soda-music/internal/catalog"
+	"soda-music/internal/netease"
 )
 
 // sampleTracks is a small, deterministic library so a screenshot always shows
@@ -119,6 +120,59 @@ func screenCases() []screenCase {
 			m.state.Theme = "dark"
 			m.page = pageLibrary
 		}},
+		{"11-online-signed-out", func(m *Model) {
+			m.page = pageOnline
+			m.onlineState = netease.Session{}
+		}},
+		{"12-online-library", func(m *Model) {
+			m.page = pageOnline
+			m.onlineState = netease.Session{Cookie: "test", UID: 42, Nickname: "测试用户"}
+			m.onlinePlaylists = samplePlaylists()
+			m.onlineDaily = sampleSongs()
+		}},
+		{"13-online-playlist", func(m *Model) {
+			m.page = pageOnlinePlaylist
+			m.onlineState = netease.Session{Cookie: "test", UID: 42, Nickname: "测试用户"}
+			m.onlinePlaylistName = "每日推荐"
+			m.onlineSongs = sampleSongs()
+		}},
+		{"14-login-dialog", func(m *Model) {
+			m.page = pageOnline
+			m.onlineState = netease.Session{}
+			m.showLogin = true
+		}},
+	}
+}
+
+// sampleSongs is a small, deterministic list of service songs for the online
+// screenshots.
+func sampleSongs() []netease.Song {
+	specs := []struct {
+		id     int64
+		title  string
+		artist string
+		album  string
+	}{
+		{101, "海边的信", "周屿", "潮汐"},
+		{102, "夜行列车", "林声", "夜行"},
+		{103, "气泡水", "苏禾", "气泡"},
+	}
+	songs := make([]netease.Song, 0, len(specs))
+	for _, spec := range specs {
+		song := netease.Song{ID: spec.id, Name: spec.title, Duration: 3*time.Minute + 20*time.Second}
+		song.Artists = []netease.Artist{{ID: spec.id, Name: spec.artist}}
+		song.Album = netease.Album{ID: spec.id, Name: spec.album}
+		songs = append(songs, song)
+	}
+	return songs
+}
+
+// samplePlaylists is a small, deterministic list of service playlists.
+func samplePlaylists() []netease.Playlist {
+	return []netease.Playlist{
+		{ID: 201, Name: "我喜欢的音乐", TrackCount: 128},
+		{ID: 202, Name: "通勤路上", TrackCount: 42},
+		{ID: 203, Name: "深夜循环", TrackCount: 66},
 	}
 }
 

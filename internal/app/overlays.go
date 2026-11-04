@@ -34,6 +34,9 @@ func (m *Model) overlays(f *flex.Frame, theme ui.Theme, size ui.Size) {
 	if m.confirmDelete != "" {
 		m.deleteConfirmDialog(f, theme)
 	}
+	if m.showLogin {
+		m.loginDialog(f, theme)
+	}
 	m.toastPill(f, theme, size)
 }
 
@@ -225,7 +228,7 @@ func (m *Model) queuePanel(f *flex.Frame, theme ui.Theme, size ui.Size) {
 
 // addToPlaylistDialog asks which playlist a track should join.
 func (m *Model) addToPlaylistDialog(f *flex.Frame, theme ui.Theme) {
-	track, _ := m.library.Track(m.addTrackID)
+	track, _ := m.lookupTrack(m.addTrackID)
 	d := f.Dialog(flex.DialogSpec{
 		Title:       "加入歌单",
 		Description: track.DisplayTitle(),
@@ -321,6 +324,58 @@ func (m *Model) deleteConfirmDialog(f *flex.Frame, theme ui.Theme) {
 	})
 	if d.Dismissed() {
 		m.confirmDelete = ""
+	}
+}
+
+// loginDialog shows the QR code a phone scans to sign in, together with the
+// state of the poll underneath it.
+func (m *Model) loginDialog(f *flex.Frame, theme ui.Theme) {
+	d := f.Dialog(flex.DialogSpec{
+		Title:       "扫码登录网易云音乐",
+		Description: "打开网易云音乐 App，扫描二维码并在手机上确认。",
+		Width:       380,
+		Scope:       loginScopeID,
+		DismissID:   dismissLoginID,
+		CloseID:     dismissLoginID,
+	})
+	d.Body(func() {
+		f.Column().FillWidth().Items(flex.Center).Gap(12).Children(func() {
+			login := m.onlineLogin
+			if login == nil {
+				if m.loginError != "" {
+					f.Text(m.loginError).Muted().TextCenter()
+					return
+				}
+				f.Text("正在获取二维码…").Muted().PadY(24)
+				return
+			}
+			if bitmap := m.loginBitmap(login); bitmap.Width > 0 {
+				m.imageBox(f, bitmap, 220, 10)
+			} else {
+				f.Column().Size(220, 220).Center().Radius(10).Background(theme.Muted).Children(func() {
+					f.Icon(assetsQrcode).Size(64, 64).Color(theme.MutedForeground)
+				})
+			}
+			message := login.Message
+			if message == "" {
+				message = "请使用网易云音乐 App 扫码"
+			}
+			f.Text(message).FontSize(13).Muted().TextCenter()
+			if m.loginError != "" {
+				f.Text(m.loginError).FontSize(12).Muted().TextCenter()
+			}
+		})
+	})
+	d.Footer(func() {
+		if f.Button(refreshLoginID, "刷新二维码").Outline().Clicked() {
+			m.signIn()
+		}
+		if f.Button(dismissLoginID, "取消").Outline().Clicked() {
+			m.cancelLogin()
+		}
+	})
+	if d.Dismissed() {
+		m.cancelLogin()
 	}
 }
 

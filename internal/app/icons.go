@@ -10,13 +10,16 @@ var (
 	assetsChevronRight = assets.Chevronright
 	assetsClock        = assets.Clock
 	assetsClose        = assets.Close
+	assetsCloud        = assets.Cloud
 	assetsDisc         = assets.Disc
 	assetsDiscover     = assets.Discover
+	assetsDownload     = assets.Download
 	assetsEqualizer    = assets.Equalizer
 	assetsFolder       = assets.Folder
 	assetsHeart        = assets.Heart
 	assetsHeartFilled  = assets.Heartfilled
 	assetsLibrary      = assets.Library
+	assetsLogout       = assets.Logout
 	assetsMic          = assets.Mic
 	assetsMoon         = assets.Moon
 	assetsMore         = assets.More
@@ -27,7 +30,9 @@ var (
 	assetsPlaylist     = assets.Playlist
 	assetsPlus         = assets.Plus
 	assetsPrevious     = assets.Previous
+	assetsQrcode       = assets.Qrcode
 	assetsQueue        = assets.Queue
+	assetsRefresh      = assets.Refresh
 	assetsRepeat       = assets.Repeat
 	assetsRepeatOne    = assets.Repeatone
 	assetsSearch       = assets.Search

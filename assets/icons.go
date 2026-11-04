@@ -77,6 +77,25 @@ var Close = ui.Icon{
 	},
 }
 
+// cloud is a compiled vector icon.
+var Cloud = ui.Icon{
+	ViewBox: 24.0,
+	Stroke:  2.0,
+	Cap:     ui.CapRound,
+	Join:    ui.JoinRound,
+	Commands: []ui.PathCommand{
+		ui.MoveTo(17.5, 19.0),
+		ui.LineTo(9.0, 19.0),
+		ui.CubicTo(5.3957, 18.9991, 2.38127, 16.2614, 2.0343, 12.6738),
+		ui.CubicTo(1.68734, 9.08628, 4.12128, 5.82169, 7.6586, 5.13008),
+		ui.CubicTo(11.1959, 4.43847, 14.6802, 6.54595, 15.71, 10.0),
+		ui.LineTo(17.5, 10.0),
+		ui.CubicTo(19.9853, 10.0, 22.0, 12.0147, 22.0, 14.5),
+		ui.CubicTo(22.0, 16.9853, 19.9853, 19.0, 17.5, 19.0),
+		ui.ClosePath(),
+	},
+}
+
 // disc is a compiled vector icon.
 var Disc = ui.Icon{
 	ViewBox: 24.0,
@@ -122,6 +141,27 @@ var Discover = ui.Icon{
 		ui.LineTo(9.88, 9.88),
 		ui.LineTo(16.24, 7.76),
 		ui.ClosePath(),
+	},
+}
+
+// download is a compiled vector icon.
+var Download = ui.Icon{
+	ViewBox: 24.0,
+	Stroke:  2.0,
+	Cap:     ui.CapRound,
+	Join:    ui.JoinRound,
+	Commands: []ui.PathCommand{
+		ui.MoveTo(21.0, 15.0),
+		ui.LineTo(21.0, 19.0),
+		ui.CubicTo(21.0, 20.1046, 20.1046, 21.0, 19.0, 21.0),
+		ui.LineTo(5.0, 21.0),
+		ui.CubicTo(3.89543, 21.0, 3.0, 20.1046, 3.0, 19.0),
+		ui.LineTo(3.0, 15.0),
+		ui.MoveTo(7.0, 10.0),
+		ui.LineTo(12.0, 15.0),
+		ui.LineTo(17.0, 10.0),
+		ui.MoveTo(12.0, 15.0),
+		ui.LineTo(12.0, 3.0),
 	},
 }
 
@@ -228,6 +268,27 @@ var Library = ui.Icon{
 		ui.LineTo(3.0, 6.0),
 		ui.MoveTo(12.0, 18.0),
 		ui.LineTo(3.0, 18.0),
+	},
+}
+
+// logout is a compiled vector icon.
+var Logout = ui.Icon{
+	ViewBox: 24.0,
+	Stroke:  2.0,
+	Cap:     ui.CapRound,
+	Join:    ui.JoinRound,
+	Commands: []ui.PathCommand{
+		ui.MoveTo(9.0, 21.0),
+		ui.LineTo(5.0, 21.0),
+		ui.CubicTo(3.89543, 21.0, 3.0, 20.1046, 3.0, 19.0),
+		ui.LineTo(3.0, 5.0),
+		ui.CubicTo(3.0, 3.89543, 3.89543, 3.0, 5.0, 3.0),
+		ui.LineTo(9.0, 3.0),
+		ui.MoveTo(16.0, 17.0),
+		ui.LineTo(21.0, 12.0),
+		ui.LineTo(16.0, 7.0),
+		ui.MoveTo(21.0, 12.0),
+		ui.LineTo(9.0, 12.0),
 	},
 }
 
@@ -464,6 +525,65 @@ var Previous = ui.Icon{
 	},
 }
 
+// qrcode is a compiled vector icon.
+var Qrcode = ui.Icon{
+	ViewBox: 24.0,
+	Stroke:  2.0,
+	Cap:     ui.CapRound,
+	Join:    ui.JoinRound,
+	Commands: []ui.PathCommand{
+		ui.MoveTo(7.0, 3.0),
+		ui.CubicTo(7.55228, 3.0, 8.0, 3.44772, 8.0, 4.0),
+		ui.LineTo(8.0, 7.0),
+		ui.CubicTo(8.0, 7.55228, 7.55228, 8.0, 7.0, 8.0),
+		ui.LineTo(4.0, 8.0),
+		ui.CubicTo(3.44772, 8.0, 3.0, 7.55228, 3.0, 7.0),
+		ui.LineTo(3.0, 4.0),
+		ui.CubicTo(3.0, 3.44772, 3.44772, 3.0, 4.0, 3.0),
+		ui.ClosePath(),
+		ui.MoveTo(20.0, 3.0),
+		ui.CubicTo(20.5523, 3.0, 21.0, 3.44772, 21.0, 4.0),
+		ui.LineTo(21.0, 7.0),
+		ui.CubicTo(21.0, 7.55228, 20.5523, 8.0, 20.0, 8.0),
+		ui.LineTo(17.0, 8.0),
+		ui.CubicTo(16.4477, 8.0, 16.0, 7.55228, 16.0, 7.0),
+		ui.LineTo(16.0, 4.0),
+		ui.CubicTo(16.0, 3.44772, 16.4477, 3.0, 17.0, 3.0),
+		ui.ClosePath(),
+		ui.MoveTo(7.0, 16.0),
+		ui.CubicTo(7.55228, 16.0, 8.0, 16.4477, 8.0, 17.0),
+		ui.LineTo(8.0, 20.0),
+		ui.CubicTo(8.0, 20.5523, 7.55228, 21.0, 7.0, 21.0),
+		ui.LineTo(4.0, 21.0),
+		ui.CubicTo(3.44772, 21.0, 3.0, 20.5523, 3.0, 20.0),
+		ui.LineTo(3.0, 17.0),
+		ui.CubicTo(3.0, 16.4477, 3.44772, 16.0, 4.0, 16.0),
+		ui.ClosePath(),
+		ui.MoveTo(21.0, 16.0),
+		ui.LineTo(18.0, 16.0),
+		ui.CubicTo(16.8954, 16.0, 16.0, 16.8954, 16.0, 18.0),
+		ui.LineTo(16.0, 21.0),
+		ui.MoveTo(21.0, 21.0),
+		ui.LineTo(21.0, 21.01),
+		ui.MoveTo(12.0, 7.0),
+		ui.LineTo(12.0, 10.0),
+		ui.CubicTo(12.0, 11.1046, 11.1046, 12.0, 10.0, 12.0),
+		ui.LineTo(7.0, 12.0),
+		ui.MoveTo(3.0, 12.0),
+		ui.LineTo(3.01, 12.0),
+		ui.MoveTo(12.0, 3.0),
+		ui.LineTo(12.01, 3.0),
+		ui.MoveTo(12.0, 16.0),
+		ui.LineTo(12.0, 16.01),
+		ui.MoveTo(16.0, 12.0),
+		ui.LineTo(17.0, 12.0),
+		ui.MoveTo(21.0, 12.0),
+		ui.LineTo(21.0, 12.01),
+		ui.MoveTo(12.0, 21.0),
+		ui.LineTo(12.0, 20.0),
+	},
+}
+
 // queue is a compiled vector icon.
 var Queue = ui.Icon{
 	ViewBox: 24.0,
@@ -486,6 +606,30 @@ var Queue = ui.Icon{
 		ui.LineTo(4.0, 18.0),
 		ui.CubicTo(4.0, 17.0, 6.0, 16.0, 6.0, 15.0),
 		ui.CubicTo(6.0, 14.0, 5.0, 13.5, 4.0, 14.0),
+	},
+}
+
+// refresh is a compiled vector icon.
+var Refresh = ui.Icon{
+	ViewBox: 24.0,
+	Stroke:  2.0,
+	Cap:     ui.CapRound,
+	Join:    ui.JoinRound,
+	Commands: []ui.PathCommand{
+		ui.MoveTo(3.0, 12.0),
+		ui.CubicTo(3.0, 7.02944, 7.02944, 3.0, 12.0, 3.0),
+		ui.CubicTo(14.516, 3.00947, 16.931, 3.99122, 18.74, 5.74),
+		ui.LineTo(21.0, 8.0),
+		ui.MoveTo(21.0, 3.0),
+		ui.LineTo(21.0, 8.0),
+		ui.LineTo(16.0, 8.0),
+		ui.MoveTo(21.0, 12.0),
+		ui.CubicTo(21.0, 16.9706, 16.9706, 21.0, 12.0, 21.0),
+		ui.CubicTo(9.48395, 20.9905, 7.06897, 20.0088, 5.26, 18.26),
+		ui.LineTo(3.0, 16.0),
+		ui.MoveTo(8.0, 16.0),
+		ui.LineTo(3.0, 16.0),
+		ui.LineTo(3.0, 21.0),
 	},
 }
 

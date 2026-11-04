@@ -15,6 +15,7 @@
 | [github.com/mewpkg/term](https://github.com/mewpkg/term) | v0.0.0-20241026122259-37a80af23985 | Unlicense | 终端输出 |
 | [github.com/icza/bitio](https://github.com/icza/bitio) | v1.1.0 | Apache-2.0 | 位级读取 |
 | [github.com/dhowden/tag](https://github.com/dhowden/tag) | v0.0.0-20240417053706-3d75831295e8 | BSD-2-Clause | 音频标签与封面读取 |
+| [github.com/skip2/go-qrcode](https://github.com/skip2/go-qrcode) | v0.0.0-20200617195104-da1b6568686e | MIT | 生成扫码登录二维码 |
 | [github.com/jfreymuth/pulse](https://github.com/jfreymuth/pulse) | v0.1.3 | MIT | Linux PulseAudio 后端（仅 Linux 构建） |
 | [github.com/pelletier/go-toml/v2](https://github.com/pelletier/go-toml) | v2.4.3 | MIT | `viva` 命令行读取 `viva.toml` |
 | [golang.org/x/sys](https://pkg.go.dev/golang.org/x/sys) | v0.47.0 | BSD-3-Clause | 系统调用 |

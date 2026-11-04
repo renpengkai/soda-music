@@ -9,6 +9,7 @@ require (
 	github.com/ebitengine/oto/v3 v3.5.1
 	github.com/hajimehoshi/go-mp3 v0.3.4
 	github.com/mewkiz/flac v1.0.14
+	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/vivaui/viva v0.2.3
 )
 
