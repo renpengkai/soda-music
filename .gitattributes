@@ -1,0 +1,8 @@
+# 统一用 LF 换行，避免 Windows 检出后 CI 的 gofmt 检查出现差异
+* text=auto eol=lf
+
+# 二进制文件不做换行转换
+*.png binary
+*.ico binary
+*.icns binary
+*.img binary

@@ -1,0 +1,20 @@
+# 构建产物
+/build/
+/dist/
+*.exe
+*.app
+*.dmg
+*.deb
+*.tar.gz
+*.zip
+
+# 本地工具链与缓存
+/work/
+/outputs/
+/.gocache/
+/.gopath/
+
+# 编辑器
+.idea/
+.vscode/
+.DS_Store

@@ -1,0 +1,176 @@
+package app
+
+import (
+	"errors"
+	"os"
+	"path/filepath"
+	"testing"
+	"time"
+
+	vivaapp "github.com/vivaui/viva/app"
+	"github.com/vivaui/viva/headless"
+
+	"soda-music/internal/catalog"
+)
+
+// sampleTracks is a small, deterministic library so a screenshot always shows
+// the same rows.
+func sampleTracks() []catalog.Track {
+	now := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
+	specs := []struct {
+		title  string
+		artist string
+		album  string
+		genre  string
+	}{
+		{"夜航", "陈一", "潮汐", "电子"},
+		{"汽水", "林二", "气泡", "流行"},
+		{"夏日回声", "苏三", "潮汐", "电子"},
+		{"旧磁带", "陈一", "潮汐", "电子"},
+		{"月光航线", "苏三", "夜行", "氛围"},
+		{"清晨地铁", "林二", "气泡", "流行"},
+	}
+	tracks := make([]catalog.Track, 0, len(specs))
+	for i, spec := range specs {
+		tracks = append(tracks, catalog.Track{
+			ID:       catalog.IDFor("/music/" + spec.title + ".flac"),
+			Path:     "/music/" + spec.title + ".flac",
+			Title:    spec.title,
+			Artist:   spec.artist,
+			Album:    spec.album,
+			Genre:    spec.genre,
+			TrackNo:  i + 1,
+			Duration: time.Duration(180+i*11) * time.Second,
+			Format:   "FLAC",
+			Added:    now.Add(time.Duration(i) * time.Hour),
+		})
+	}
+	return tracks
+}
+
+func newTestModel(t *testing.T) *Model {
+	t.Helper()
+	store := &catalog.Store{Dir: t.TempDir()}
+	m := newModel(store, nil, &vivaapp.Invalidator{}, &appTree, appRoot)
+	m.state = catalog.DefaultState()
+	m.state.Playlists = []catalog.Playlist{
+		catalog.NewPlaylist("深夜循环", time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)),
+		catalog.NewPlaylist("通勤", time.Date(2026, 1, 3, 3, 4, 5, 0, time.UTC)),
+	}
+	tracks := sampleTracks()
+	m.state.Favorites = []string{tracks[0].ID, tracks[2].ID}
+	m.state.History = []string{tracks[1].ID, tracks[0].ID}
+	m.state.PlayCounts = map[string]int{tracks[0].ID: 12, tracks[1].ID: 5, tracks[2].ID: 3}
+	m.setLibrary(catalog.New(tracks), nil)
+	return m
+}
+
+// screenshotDir is where the verification images are written.
+func screenshotDir(t *testing.T) string {
+	t.Helper()
+	dir := filepath.Join("..", "..", "outputs", "screenshots")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	return dir
+}
+
+// screenCase is one state of the window that is painted and photographed.
+type screenCase struct {
+	name  string
+	setup func(m *Model)
+}
+
+func screenCases() []screenCase {
+	return []screenCase{
+		{"01-discover-empty", func(m *Model) {
+			m.setLibrary(catalog.New(nil), nil)
+			m.page = pageDiscover
+		}},
+		{"02-library", func(m *Model) {
+			m.page = pageLibrary
+			m.libraryTab = tabTracks
+		}},
+		{"03-albums", func(m *Model) {
+			m.page = pageLibrary
+			m.libraryTab = tabAlbums
+		}},
+		{"04-playlists", func(m *Model) {
+			m.page = pagePlaylists
+		}},
+		{"05-settings", func(m *Model) {
+			m.page = pageSettings
+		}},
+		{"06-now-playing", func(m *Model) {
+			m.showNowPlaying = true
+			_ = m.player.SetQueue(sampleTracks(), 0)
+		}},
+		{"07-queue", func(m *Model) {
+			m.showQueue = true
+			_ = m.player.SetQueue(sampleTracks(), 0)
+		}},
+		{"08-new-playlist", func(m *Model) {
+			m.showNewList = true
+		}},
+		{"09-add-to-playlist", func(m *Model) {
+			m.addTrackID = sampleTracks()[0].ID
+		}},
+		{"10-dark-library", func(m *Model) {
+			m.state.Theme = "dark"
+			m.page = pageLibrary
+		}},
+	}
+}
+
+// TestLayout drives the real paint path for every screen without a window. It
+// fails if a page panics or a control loses its identity, and it is the only
+// test that needs no offscreen renderer.
+func TestLayout(t *testing.T) {
+	for _, tc := range screenCases() {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			m := newTestModel(t)
+			tc.setup(m)
+			session, err := headless.Open(m.config(), nil, headless.Options{Scale: 1, ReferenceText: true})
+			if err != nil {
+				t.Skipf("headless session unavailable: %v", err)
+			}
+			defer session.Close()
+			if err := session.Settle(5*time.Millisecond, 2*time.Second); err != nil {
+				t.Fatalf("settle: %v", err)
+			}
+			if len(session.Texts()) == 0 {
+				t.Fatal("the window painted no text")
+			}
+		})
+	}
+}
+
+// TestScreenshots writes the images used to review the layout by eye. It skips
+// when the platform has no offscreen renderer, so it never fails a headless
+// build machine.
+func TestScreenshots(t *testing.T) {
+	dir := screenshotDir(t)
+	for _, tc := range screenCases() {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			m := newTestModel(t)
+			tc.setup(m)
+			session, err := headless.Open(m.config(), nil, headless.Options{Scale: 1, ReferenceText: true})
+			if err != nil {
+				t.Skipf("headless session unavailable: %v", err)
+			}
+			defer session.Close()
+			if err := session.Settle(5*time.Millisecond, 2*time.Second); err != nil {
+				t.Fatalf("settle: %v", err)
+			}
+			path := filepath.Join(dir, tc.name+".png")
+			if err := session.Screenshot(path); err != nil {
+				if errors.Is(err, headless.ErrNoRenderer) {
+					t.Skipf("no offscreen renderer: %v", err)
+				}
+				t.Fatalf("screenshot: %v", err)
+			}
+		})
+	}
+}
