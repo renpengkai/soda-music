@@ -197,7 +197,7 @@ go tool viva package --target darwin  --arch arm64 --format app,zip,dmg --no-sig
   | `windows-latest` | windows / amd64 | NSIS 安装包、`.zip` |
   | `ubuntu-latest` | linux / amd64 | `.tar.gz`、`.deb` |
 
-  所有产物都会上传为 workflow artifact；如果是标签触发，还会自动附加到对应的 GitHub Release。
+  所有产物都会上传为 workflow artifact；如果是标签触发，四个平台打包完成后会由一个单独的 `release` 任务统一把产物附加到对应的 GitHub Release（避免多个 runner 同时创建同一个 Release）。
 
 发布一个新版本：
 
