@@ -401,7 +401,7 @@ func (m *Model) searchOnline(keyword string) {
 	}
 	if !m.onlineState.SignedIn() {
 		m.toastf("请先登录网易云音乐")
-		m.showLogin = true
+		m.signIn()
 		return
 	}
 	m.onlineSearching = true
@@ -441,7 +441,7 @@ func (m *Model) playOnline(songs []netease.Song, index int) {
 	}
 	if !m.onlineState.SignedIn() {
 		m.toastf("请先登录网易云音乐")
-		m.showLogin = true
+		m.signIn()
 		return
 	}
 	selected := songs[index]
@@ -803,7 +803,7 @@ func (m *Model) playTrackList(tracks []catalog.Track, index int) {
 func (m *Model) fetchOnline(track catalog.Track) {
 	if !m.onlineState.SignedIn() {
 		m.toastf("请先登录网易云音乐")
-		m.showLogin = true
+		m.signIn()
 		return
 	}
 	m.toastf("正在缓存《%s》…", track.DisplayTitle())

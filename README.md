@@ -45,9 +45,9 @@
 | --- | --- | --- |
 | ![深色曲库](docs/screenshots/10-dark-library.png) | ![在线音乐](docs/screenshots/11-online-signed-out.png) | ![在线歌单](docs/screenshots/13-online-playlist.png) |
 
-| 在线曲库 | 扫码登录 |
-| --- | --- |
-| ![在线曲库](docs/screenshots/12-online-library.png) | ![扫码登录](docs/screenshots/14-login-dialog.png) |
+| 在线曲库 | 扫码登录 | 扫码二维码 |
+| --- | --- | --- |
+| ![在线曲库](docs/screenshots/12-online-library.png) | ![扫码登录](docs/screenshots/14-login-dialog.png) | ![扫码二维码](docs/screenshots/15-login-qr.png) |
 
 > 截图由 `internal/app` 的 headless 测试自动生成，命令见[开发](#本地开发)。
 
@@ -147,7 +147,7 @@ go test ./... -count=1
 go build ./...
 ```
 
-`internal/app` 里有一个 headless 测试，会把 14 个界面状态渲染成 PNG，写到 `outputs/screenshots/`：
+`internal/app` 里有一个 headless 测试，会把 15 个界面状态渲染成 PNG，写到 `outputs/screenshots/`：
 
 ```bash
 go test ./internal/app -run TestScreenshots -count=1

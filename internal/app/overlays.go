@@ -330,6 +330,12 @@ func (m *Model) deleteConfirmDialog(f *flex.Frame, theme ui.Theme) {
 // loginDialog shows the QR code a phone scans to sign in, together with the
 // state of the poll underneath it.
 func (m *Model) loginDialog(f *flex.Frame, theme ui.Theme) {
+	// The dialog is opened from several places - the sign-in button, a search or
+	// a playback that needs an account. Whenever it is open without a code, start
+	// fetching one, so it can never sit on "正在获取二维码…" forever.
+	if m.onlineLogin == nil && !m.loginBusy && m.loginError == "" {
+		m.signIn()
+	}
 	d := f.Dialog(flex.DialogSpec{
 		Title:       "扫码登录网易云音乐",
 		Description: "打开网易云音乐 App，扫描二维码并在手机上确认。",
@@ -350,7 +356,10 @@ func (m *Model) loginDialog(f *flex.Frame, theme ui.Theme) {
 				return
 			}
 			if bitmap := m.loginBitmap(login); bitmap.Width > 0 {
-				m.imageBox(f, bitmap, 220, 10)
+				// The code is drawn as a dialog image, so it lands on the dialog's own
+				// compositing layer. Drawing it after the frame instead would put it on
+				// layer zero, underneath the dialog surface and its scrim.
+				f.Image(bitmap).Size(220, 220)
 			} else {
 				f.Column().Size(220, 220).Center().Radius(10).Background(theme.Muted).Children(func() {
 					f.Icon(assetsQrcode).Size(64, 64).Color(theme.MutedForeground)

@@ -1,11 +1,17 @@
 package app
 
 import (
+	"bytes"
 	"errors"
+	"image"
+	"image/color"
+	"image/png"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	qrcode "github.com/skip2/go-qrcode"
 
 	vivaapp "github.com/vivaui/viva/app"
 	"github.com/vivaui/viva/headless"
@@ -142,7 +148,50 @@ func screenCases() []screenCase {
 			m.onlineState = netease.Session{}
 			m.showLogin = true
 		}},
+		{"15-login-qr", func(m *Model) {
+			m.page = pageOnline
+			m.onlineState = netease.Session{}
+			m.showLogin = true
+			m.onlineLogin = &netease.QRLogin{
+				Key:     "sample-key",
+				Image:   sampleQRPNG(),
+				State:   netease.QRWaiting,
+				Message: "请使用网易云音乐 App 扫码",
+			}
+		}},
 	}
+}
+
+// sampleQRPNG renders a deterministic QR code so the sign-in dialog can be
+// photographed with a real bitmap in place.
+func sampleQRPNG() []byte {
+	code, err := qrcode.New("https://music.163.com/login?codekey=sample-key", qrcode.Medium)
+	if err != nil {
+		panic(err)
+	}
+	code.DisableBorder = false
+	bitmap := code.Bitmap()
+	side := len(bitmap)
+	scale := 8
+	picture := image.NewRGBA(image.Rect(0, 0, side*scale, side*scale))
+	for y := 0; y < side; y++ {
+		for x := 0; x < side; x++ {
+			shade := color.RGBA{R: 255, G: 255, B: 255, A: 255}
+			if bitmap[y][x] {
+				shade = color.RGBA{R: 0x0B, G: 0x1A, B: 0x17, A: 255}
+			}
+			for dy := 0; dy < scale; dy++ {
+				for dx := 0; dx < scale; dx++ {
+					picture.Set(x*scale+dx, y*scale+dy, shade)
+				}
+			}
+		}
+	}
+	var out bytes.Buffer
+	if err := png.Encode(&out, picture); err != nil {
+		panic(err)
+	}
+	return out.Bytes()
 }
 
 // sampleSongs is a small, deterministic list of service songs for the online
@@ -275,5 +324,80 @@ func TestClickEveryNavEntry(t *testing.T) {
 				t.Fatalf("点击 %q 之后 page = %v，期望 %v", entry.label, m.page, entry.page)
 			}
 		})
+	}
+}
+
+// TestLoginQRDrawsOnDialogLayer guards the sign-in code against a z-order bug:
+// the QR bitmap must be painted on the dialog's own compositing layer, not on
+// layer zero after the frame. On layer zero the dialog surface and its scrim,
+// which paint above the page, veil or hide the code.
+func TestLoginQRDrawsOnDialogLayer(t *testing.T) {
+	m := newTestModel(t)
+	m.page = pageOnline
+	m.onlineState = netease.Session{}
+	m.showLogin = true
+	m.onlineLogin = &netease.QRLogin{
+		Key:     "sample-key",
+		Image:   sampleQRPNG(),
+		State:   netease.QRWaiting,
+		Message: "请使用网易云音乐 App 扫码",
+	}
+	session, err := headless.Open(m.config(), nil, headless.Options{Scale: 1, ReferenceText: true})
+	if err != nil {
+		t.Skipf("headless session unavailable: %v", err)
+	}
+	defer session.Close()
+	if err := session.Settle(5*time.Millisecond, 2*time.Second); err != nil {
+		t.Fatalf("settle: %v", err)
+	}
+	snapshot := session.Snapshot()
+	// The code is the one bitmap big enough to be the QR square. Drawing it as
+	// many one-pixel strips, the way the cover painter does, is the bug this
+	// test exists to catch.
+	bitmaps := 0
+	var code *vivaapp.Label
+	for index := range snapshot.Labels {
+		label := &snapshot.Labels[index]
+		if label.BitmapWidth == 0 {
+			continue
+		}
+		bitmaps++
+		if label.Bounds.Width >= 100 && label.Bounds.Height >= 100 {
+			code = label
+		}
+	}
+	if code == nil {
+		t.Fatalf("登录对话框里没有画出整块二维码位图（找到 %d 个位图标签）；它应当是一张图片，而不是逐行拼出来的", bitmaps)
+	}
+	if code.Layer == 0 {
+		t.Fatalf("二维码画在第 0 层（bounds %v），会被对话框表面和遮罩盖住", code.Bounds)
+	}
+}
+
+// TestLoginDialogStartsFetchWhenOpened guards the sign-in dialog against being
+// opened without a code being fetched. Several actions open it directly (a
+// search or a playback that needs an account); if none of them starts the
+// fetch, the dialog sits on "正在获取二维码…" and no code ever appears.
+func TestLoginDialogStartsFetchWhenOpened(t *testing.T) {
+	m := newTestModel(t)
+	m.page = pageOnline
+	m.onlineState = netease.Session{}
+	// Open the dialog the way the search and playback paths do: without going
+	// through signIn.
+	m.showLogin = true
+	session, err := headless.Open(m.config(), nil, headless.Options{Scale: 1, ReferenceText: true})
+	if err != nil {
+		t.Skipf("headless session unavailable: %v", err)
+	}
+	defer session.Close()
+	if err := session.Settle(5*time.Millisecond, 2*time.Second); err != nil {
+		t.Fatalf("settle: %v", err)
+	}
+	m.mu.Lock()
+	login := m.onlineLogin
+	loginErr := m.loginError
+	m.mu.Unlock()
+	if !m.loginBusy && login == nil && loginErr == "" {
+		t.Fatal("登录对话框打开了，却没有开始获取二维码，会一直停在「正在获取二维码…」")
 	}
 }
