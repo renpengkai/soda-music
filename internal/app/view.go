@@ -76,6 +76,7 @@ var (
 
 	navIDs = map[page]ui.ID{
 		pageDiscover:  appTree.ID(appRoot, "nav-discover"),
+		pageOnline:    appTree.ID(appRoot, "nav-online"),
 		pageSearch:    appTree.ID(appRoot, "nav-search"),
 		pageLibrary:   appTree.ID(appRoot, "nav-library"),
 		pagePlaylists: appTree.ID(appRoot, "nav-playlists"),

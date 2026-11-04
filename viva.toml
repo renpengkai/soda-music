@@ -8,7 +8,7 @@
 [app]
 name = "汽水音乐"
 id = "dev.sodamusic.app"
-version = "0.2.0"
+version = "0.2.1"
 executable = "soda-music"
 package = "."
 icon = "assets/icon.png"

@@ -9,6 +9,7 @@ import (
 
 	vivaapp "github.com/vivaui/viva/app"
 	"github.com/vivaui/viva/headless"
+	"github.com/vivaui/viva/ui"
 
 	"soda-music/internal/catalog"
 	"soda-music/internal/netease"
@@ -224,6 +225,54 @@ func TestScreenshots(t *testing.T) {
 					t.Skipf("no offscreen renderer: %v", err)
 				}
 				t.Fatalf("screenshot: %v", err)
+			}
+		})
+	}
+}
+
+// TestNavIDsCoverEveryEntry guards a failure mode that is invisible in a
+// screenshot: a sidebar entry that is drawn but has no hit id, so clicking it
+// does nothing. Every entry must have a distinct, non-zero id.
+func TestNavIDsCoverEveryEntry(t *testing.T) {
+	seen := make(map[ui.ID]string, len(navEntries))
+	for _, entry := range navEntries {
+		id, ok := navIDs[entry.page]
+		if !ok {
+			t.Fatalf("导航项 %q（page %v）在 navIDs 里没有对应条目，点击不会生效", entry.label, entry.page)
+		}
+		if id.IsZero() {
+			t.Fatalf("导航项 %q（page %v）映射到零值 id，点击不会生效", entry.label, entry.page)
+		}
+		if prev, dup := seen[id]; dup {
+			t.Fatalf("导航项 %q 与 %q 共用了同一个 id %v", prev, entry.label, id)
+		}
+		seen[id] = entry.label
+	}
+}
+
+// TestClickEveryNavEntry drives the real hit-testing path: it clicks each
+// sidebar entry by its label and checks the model switched to that page.
+func TestClickEveryNavEntry(t *testing.T) {
+	for _, entry := range navEntries {
+		entry := entry
+		t.Run(entry.label, func(t *testing.T) {
+			m := newTestModel(t)
+			session, err := headless.Open(m.config(), nil, headless.Options{Scale: 1, ReferenceText: true})
+			if err != nil {
+				t.Skipf("headless session unavailable: %v", err)
+			}
+			defer session.Close()
+			if err := session.Settle(5*time.Millisecond, 2*time.Second); err != nil {
+				t.Fatalf("settle: %v", err)
+			}
+			if err := session.ClickLabel(entry.label); err != nil {
+				t.Fatalf("点击 %q 失败: %v", entry.label, err)
+			}
+			if err := session.Settle(5*time.Millisecond, 2*time.Second); err != nil {
+				t.Fatalf("settle: %v", err)
+			}
+			if m.page != entry.page {
+				t.Fatalf("点击 %q 之后 page = %v，期望 %v", entry.label, m.page, entry.page)
 			}
 		})
 	}
